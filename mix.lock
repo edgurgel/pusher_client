@@ -1,0 +1,7 @@
+[ "exlager": {:git, "git://github.com/edgurgel/exlager.git", "b50e47abe39b2cb28fa431f0af4390c2324bf229", []},
+  "goldrush": {:git, "git://github.com/DeadZen/goldrush.git", "879c69874a555b2c13498aa4a3da6f6bbbb6a031", [{:tag, "879c69874a"}]},
+  "jsex": {:git, "git://github.com/talentdeficit/jsex.git", "95492e9a4f418c10ff1c74d669d89ca5e8ac4d67", []},
+  "jsx": {:git, "git://github.com/talentdeficit/jsx.git", "e50af6e109cb03bd26acf715cbc77de746507d1d", [{:tag, "v1.4.3"}]},
+  "lager": {:git, "https://github.com/basho/lager.git", "2965c23f46301afeb7d62f6fbac99b3ab367f6b2", []},
+  "meck": {:git, "git://github.com/eproxus/meck.git", "917690864617cb9a565e58484c73275a7b40a997", [{:tag, "0.8"}]},
+  "websocket_client": {:git, "git://github.com/jeremyong/websocket_client.git", "7b8731ab0aa6070fb78e29750380f89cf529627a", []} ]
