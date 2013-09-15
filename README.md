@@ -1,4 +1,4 @@
-# PusherClient [![Build Status](https://travis-ci.org/edgurgel/pusher-client.png?branch=master)](https://travis-ci.org/edgurgel/pusher-client)
+# PusherClient [![Build Status](https://travis-ci.org/edgurgel/pusher_client.png?branch=master)](https://travis-ci.org/edgurgel/pusher_client)
 
 Websocket client to Pusher service
 
