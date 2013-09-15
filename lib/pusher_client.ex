@@ -27,6 +27,11 @@ defmodule PusherClient do
   def add_handler!(pid, handler), do: :gen_server.call(pid, { :add_handler, handler })
 
   @doc """
+  Delete event handler, see `gen_event` documentation.
+  """
+  def delete_handler!(pid, handler), do: :gen_server.call(pid, { :delete_handler, handler })
+
+  @doc """
   Subscribe to `channel`
   """
   def subscribe!(pid, channel) do
@@ -57,6 +62,10 @@ defmodule PusherClient do
   end
   def handle_call({ :add_handler, handler }, _from, ClientInfo[gen_event_pid: gen_event_pid] = state) do
     :gen_event.add_handler(gen_event_pid, handler, nil)
+    { :reply, :ok, state }
+  end
+  def handle_call({ :delete_handler, handler }, _from, ClientInfo[gen_event_pid: gen_event_pid] = state) do
+    :gen_event.delete_handler(gen_event_pid, handler, nil)
     { :reply, :ok, state }
   end
   def handle_call(:stop, _from, ClientInfo[ws_pid: ws_pid] = _state) do
