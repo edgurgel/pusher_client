@@ -5,9 +5,9 @@ Websocket client to Pusher service
 ## Usage
 
 ```iex
-iex> {:ok, pid} = PusherClient.connect('ws://localhost:8080/app/app_key')
+iex> {:ok, pid} = PusherClient.connect!('ws://localhost:8080/app/app_key')
 {:ok, #PID<0.134.0>}
-iex> PusherClient.subscribe(pid, "channel")
+iex> PusherClient.subscribe!(pid, "channel")
 :ok
 ```
 
@@ -39,7 +39,7 @@ That's it!
 You can disconnect too:
 
 ```iex
-iex> PusherClient.disconnect(pid)
+iex> PusherClient.disconnect!(pid)
 :shutdown_ok
 iex> 17:47:33.520 [info] Terminated: {:normal, "Normal shutdown"}
 ```
