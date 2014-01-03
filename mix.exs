@@ -16,7 +16,7 @@ defmodule PusherClient.Mixfile do
     [
       { :websocket_client, github: "jeremyong/websocket_client" },
       { :exlager, github: "khia/exlager"},
-      { :jsex, github: "talentdeficit/jsex", tag: "v0.2" }
+      { :jsex, github: "talentdeficit/jsex", ref: "c9df36f07b2089a73ab6b32074c01728f1e5a2e1" }
     ]
   end
 
