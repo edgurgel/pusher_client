@@ -5,6 +5,13 @@ defmodule PusherClient.WSHandlerTest do
   import :meck
   import PusherClient.WSHandler
 
+  defmodule EventHandler do
+    use GenEvent.Behaviour
+    def init(_), do: { :ok, [] }
+    def handle_event(e, events), do: { :ok, [e|events] }
+    def handle_call(:events, events), do: {:ok, Enum.reverse(events), []}
+  end
+
   setup do
     new JSEX
     new PusherEvent
@@ -49,7 +56,10 @@ defmodule PusherClient.WSHandlerTest do
   end
 
   test "handle other events" do
-    state = WSHandlerInfo.new(gen_event_pid: self)
+    { :ok, gen_event_pid } = :gen_event.start_link
+    :gen_event.add_handler(gen_event_pid, EventHandler, [])
+
+    state = WSHandlerInfo.new(gen_event_pid: gen_event_pid)
     channel = "public-channel"
     event = [
               { "event", "message" },
@@ -58,9 +68,11 @@ defmodule PusherClient.WSHandlerTest do
             ]
     expect(JSEX, :decode!, 1, event)
 
-    assert websocket_handle({:text, :event}, :conn_state, state) ==
-      { :ok, state }
+    assert websocket_handle({:text, :event}, :conn_state, state) == { :ok, state }
+    assert :gen_event.call(gen_event_pid, EventHandler, :events) ==
+      [{"public-channel", "message", [{"etc", "anything"}]}]
 
+    :gen_event.stop(gen_event_pid)
     assert validate JSEX
   end
 

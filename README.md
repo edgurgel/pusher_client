@@ -21,15 +21,19 @@ defmodule EventHandler do
 
   def handle_event(event, nil) do
     IO.inspect event, raw: true
-    { :ok, nil }
+    { :ok, event }
   end
+
+  def handle_call(:last_event, event), do: {:ok, event, event}
 end
 ```
 
 The `EventHandler` just print the received event. Now we add the handler and trigger an event:
 
 ```iex
-iex> PusherClient.add_handler!(pid, PusherClient.EventHandler)
+iex> info = PusherClient.client_info(pid)
+PusherClient.ClientInfo[gen_event_pid: #PID<0.130.0>, ws_pid: #PID<0.132.0>]
+iex> :gen_event.add_handler(info.gen_event_pid, PusherClient.EventHandler, nil)
 :ok
 {"channel", "message", [{"text", "Hello!"}]}
 ```
