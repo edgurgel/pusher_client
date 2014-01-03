@@ -25,4 +25,5 @@ defmodule PusherClient.Mixfile do
      [ {:meck, github: "eproxus/meck", tag: "0.8" } ]
   end
 
+  defp deps(_), do: deps(:dev)
 end
