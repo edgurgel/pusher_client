@@ -42,15 +42,21 @@ defmodule PusherClient.WSHandlerTest do
   end
 
   test "handle subscription succeeded event" do
+    { :ok, gen_event_pid } = :gen_event.start_link
+    :gen_event.add_handler(gen_event_pid, EventHandler, [])
+
+    state = WSHandlerInfo.new(gen_event_pid: gen_event_pid)
     channel = "public-channel"
     event = [
               { "event", "pusher_internal:subscription_succeeded" },
-              { "data", [ { "channel", channel } ] }
+              { "channel", channel },
+              { "data", [ ] }
             ]
     expect(JSEX, :decode!, 1, event)
 
-    assert websocket_handle({:text, :event}, :conn_state, :state) ==
-      { :ok, :state }
+    assert websocket_handle({:text, :event}, :conn_state, state) == { :ok, state }
+    assert :gen_event.call(gen_event_pid, EventHandler, :events) ==
+      [{"public-channel", "pusher:subscription_succeeded", []}]
 
     assert validate JSEX
   end

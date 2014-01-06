@@ -53,11 +53,16 @@ defmodule PusherClient.WSHandler do
     Lager.info "Connection established on socket id: #{socket_id}"
     { :ok, state.update(socket_id: socket_id) }
   end
-  defp handle_event("pusher_internal:subscription_succeeded", _event, state) do
+  defp handle_event("pusher_internal:subscription_succeeded", event, WSHandlerInfo[gen_event_pid: gen_event_pid] = state) do
+    notify(gen_event_pid, event, "pusher:subscription_succeeded")
     { :ok, state }
   end
   defp handle_event(event_name, event, WSHandlerInfo[gen_event_pid: gen_event_pid] = state) do
-    :gen_event.notify(gen_event_pid, { event["channel"], event_name, event["data"] })
+    notify(gen_event_pid, event, event_name)
     { :ok, state }
+  end
+
+  defp notify(gen_event_pid, event, name) do
+    :gen_event.notify(gen_event_pid, { event["channel"], name, event["data"] })
   end
 end
