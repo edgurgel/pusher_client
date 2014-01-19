@@ -50,15 +50,15 @@ defmodule PusherClient do
   @doc false
   def handle_call(:client_info, _from, state), do: { :reply, state, state }
   def handle_call({ :subscribe, channel }, _from, ClientInfo[ws_pid: ws_pid] = state) do
-    ws_pid <- { :subscribe, channel }
+    send ws_pid, { :subscribe, channel }
     { :reply, :ok, state }
   end
   def handle_call({ :unsubscribe, channel }, _from, ClientInfo[ws_pid: ws_pid] = state) do
-    ws_pid <- { :unsubscribe, channel }
+    send ws_pid, { :unsubscribe, channel }
     { :reply, :ok, state }
   end
   def handle_call(:stop, _from, ClientInfo[ws_pid: ws_pid] = _state) do
-    ws_pid <- :stop
+    send ws_pid, :stop
     { :stop, :normal, :shutdown_ok, nil}
   end
 end
