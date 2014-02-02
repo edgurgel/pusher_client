@@ -50,6 +50,6 @@ iex> 17:47:33.520 [info] Terminated: {:normal, "Normal shutdown"}
 
 ## TODO
 
-* Support privat and presence channels;
+* Support private and presence channels;
 * Add supervisors?
 * Add tests to PusherClient module;
