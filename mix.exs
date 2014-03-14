@@ -4,7 +4,7 @@ defmodule PusherClient.Mixfile do
   def project do
     [ app: :pusher_client,
       version: "0.0.1",
-      elixir: "~> 0.12.2",
+      elixir: "~> 0.12.4",
       deps: deps(Mix.env) ]
   end
 
@@ -16,7 +16,7 @@ defmodule PusherClient.Mixfile do
     [
       { :websocket_client, github: "jeremyong/websocket_client" },
       { :exlager, github: "khia/exlager"},
-      { :jsex, github: "talentdeficit/jsex", ref: "c9df36f07b2089a73ab6b32074c01728f1e5a2e1" }
+      { :jsex, github: "talentdeficit/jsex" }
     ]
   end
 
