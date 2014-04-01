@@ -38,8 +38,8 @@ defmodule PusherClient.WSHandler do
   end
 
   @doc false
-  def websocket_terminate({ :close, code, payload }, _conn_state, _state) do
-    Lager.info "websocket close with code #{code} and payload #{payload}."
+  def websocket_terminate({close, code, payload }, _conn_state, _state) do
+    Lager.info "Websocket close with code #{code} and payload '#{payload}'."
     :ok
   end
   def websocket_terminate(reason, _conn_state, _state) do
