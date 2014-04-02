@@ -5,6 +5,10 @@ defmodule PusherClient.WSHandler do
   require Lager
   alias PusherClient.PusherEvent
 
+  @protocol 7
+
+  def protocol, do: @protocol
+
   defrecord WSHandlerInfo, gen_event_pid: nil, socket_id: nil do
     record_type gen_event_pid: pid, socket_id: nil | binary
   end
@@ -38,6 +42,14 @@ defmodule PusherClient.WSHandler do
   end
 
   @doc false
+  def websocket_terminate({close, 4001, _message}, _conn_state, _state) do
+    Lager.error "Wrong app_key"
+    :ok
+  end
+  def websocket_terminate({close, 4007, _message}, _conn_state, _state) do
+    Lager.error "Pusher server does not support current protocol #{@protocol}"
+    :ok
+  end
   def websocket_terminate({close, code, payload }, _conn_state, _state) do
     Lager.info "Websocket close with code #{code} and payload '#{payload}'."
     :ok
