@@ -1,5 +1,6 @@
 defmodule PusherClient do
   use GenServer.Behaviour
+  import PusherClient.WSHandler, only: [protocol: 0]
 
   defrecord ClientInfo, gen_event_pid: nil, ws_pid: nil do
     record_type gen_event_pid: pid, ws_pid: nil
@@ -8,11 +9,12 @@ defmodule PusherClient do
   @doc """
   Connect to a websocket `url`
   """
-  def connect!(url) do
+  def connect!(url) when is_list(url) do
     { :ok, gen_event_pid } = :gen_event.start_link
-    { :ok, pid } = :gen_server.start_link(PusherClient, [url, gen_event_pid], [])
-    { :ok, pid }
+    query = "?" <> URI.encode_query([protocol: protocol])
+    :gen_server.start_link(PusherClient, [url ++ to_char_list(query), gen_event_pid], [])
   end
+  def connect!(url) when is_binary(url), do: connect!(url |> to_char_list)
 
   @doc """
   Disconnect from an open websocket connection passing.
@@ -43,8 +45,11 @@ defmodule PusherClient do
 
   @doc false
   def init([url, gen_event_pid]) do
-    { :ok, ws_pid } = :websocket_client.start_link(url, PusherClient.WSHandler, gen_event_pid)
-    { :ok, ClientInfo.new(ws_pid: ws_pid, gen_event_pid: gen_event_pid) }
+    case :websocket_client.start_link(url, PusherClient.WSHandler, gen_event_pid) do
+      { :ok, ws_pid } ->
+        { :ok, ClientInfo.new(ws_pid: ws_pid, gen_event_pid: gen_event_pid) }
+      { :error, reason } -> { :stop, reason }
+    end
   end
 
   @doc false
