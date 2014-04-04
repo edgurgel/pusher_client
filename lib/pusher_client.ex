@@ -1,5 +1,6 @@
 defmodule PusherClient do
   use GenServer.Behaviour
+  require Lager
   import PusherClient.WSHandler, only: [protocol: 0]
 
   defrecord ClientInfo, gen_event_pid: nil, ws_pid: nil do
@@ -12,7 +13,7 @@ defmodule PusherClient do
   def connect!(url) when is_list(url) do
     { :ok, gen_event_pid } = :gen_event.start_link
     query = "?" <> URI.encode_query([protocol: protocol])
-    :gen_server.start_link(PusherClient, [url ++ to_char_list(query), gen_event_pid], [])
+    :gen_server.start(PusherClient, [url ++ to_char_list(query), gen_event_pid], [])
   end
   def connect!(url) when is_binary(url), do: connect!(url |> to_char_list)
 
@@ -45,7 +46,7 @@ defmodule PusherClient do
 
   @doc false
   def init([url, gen_event_pid]) do
-    case :websocket_client.start_link(url, PusherClient.WSHandler, gen_event_pid) do
+    case :websocket_client.start_link(url, PusherClient.WSHandler, { self, gen_event_pid  }) do
       { :ok, ws_pid } ->
         { :ok, ClientInfo.new(ws_pid: ws_pid, gen_event_pid: gen_event_pid) }
       { :error, reason } -> { :stop, reason }
@@ -63,7 +64,18 @@ defmodule PusherClient do
     { :reply, :ok, state }
   end
   def handle_call(:stop, _from, ClientInfo[ws_pid: ws_pid] = _state) do
+    Lager.info "Disconnecting"
     send ws_pid, :stop
-    { :stop, :normal, :shutdown_ok, nil}
+    # Check this reply!
+    { :stop, :normal, :ok, nil}
+  end
+
+  def handle_info({ :stop, reason }, _state) do
+    { :stop, reason, nil }
+  end
+
+  def terminate(reason, _state) do
+    Lager.info "Terminating, reason: #{inspect reason}"
+    { :shutdown, reason }
   end
 end

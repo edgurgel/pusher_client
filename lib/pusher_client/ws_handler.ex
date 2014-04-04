@@ -9,13 +9,14 @@ defmodule PusherClient.WSHandler do
 
   def protocol, do: @protocol
 
-  defrecord WSHandlerInfo, gen_event_pid: nil, socket_id: nil do
-    record_type gen_event_pid: pid, socket_id: nil | binary
+  defrecord WSHandlerInfo, gen_server_pid: nil, gen_event_pid: nil, socket_id: nil do
+    record_type gen_server_pid: pid, gen_event_pid: pid, socket_id: nil | binary
   end
 
   @doc false
-  def init(gen_event_pid, _conn_state) do
-    { :ok, WSHandlerInfo.new(gen_event_pid: gen_event_pid) }
+  def init({gen_server_pid, gen_event_pid}, _conn_state) do
+    { :ok, WSHandlerInfo.new(gen_server_pid: gen_server_pid,
+                             gen_event_pid: gen_event_pid) }
   end
 
   @doc false
@@ -42,20 +43,25 @@ defmodule PusherClient.WSHandler do
   end
 
   @doc false
-  def websocket_terminate({_close, 4001, _message}, _conn_state, _state) do
+  def websocket_terminate({_close, 4001, _message} = reason, _conn_state, state) do
     Lager.error "Wrong app_key"
-    :ok
+    do_websocket_terminate(reason, state)
   end
-  def websocket_terminate({_close, 4007, _message}, _conn_state, _state) do
+  def websocket_terminate({_close, 4007, _message} = reason, _conn_state, state) do
     Lager.error "Pusher server does not support current protocol #{@protocol}"
-    :ok
+    do_websocket_terminate(reason, state)
   end
-  def websocket_terminate({_close, code, payload }, _conn_state, _state) do
+  def websocket_terminate({_close, code, payload } = reason, _conn_state, state) do
     Lager.info "Websocket close with code #{code} and payload '#{payload}'."
-    :ok
+    do_websocket_terminate(reason, state)
   end
-  def websocket_terminate(reason, _conn_state, _state) do
-    Lager.info "Terminated: #{inspect reason}"
+  def websocket_terminate({:normal, _message}, _conn_state, nil), do: :ok
+  def websocket_terminate(reason, _conn_state, state) do
+    do_websocket_terminate(reason, state)
+  end
+  def do_websocket_terminate(reason, WSHandlerInfo[gen_server_pid: gen_server_pid]) do
+    Lager.info "Websocket closed: #{inspect reason}"
+    send(gen_server_pid, {:stop, reason})
     :ok
   end
 

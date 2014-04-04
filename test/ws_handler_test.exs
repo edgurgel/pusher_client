@@ -23,7 +23,8 @@ defmodule PusherClient.WSHandlerTest do
   end
 
   test "init" do
-    assert init(self, :conn_state) == { :ok, WSHandlerInfo.new(gen_event_pid: self) }
+    assert init({:gen_server_pid, :gen_event_pid}, :conn_state) ==
+      { :ok, WSHandlerInfo.new(gen_server_pid: :gen_server_pid, gen_event_pid: :gen_event_pid) }
   end
 
   test "handle connection established event" do
@@ -98,6 +99,26 @@ defmodule PusherClient.WSHandlerTest do
       { :reply, { :text, :event_unsubscribe_json}, :state }
 
     assert validate PusherEvent
+  end
+
+  test "terminating with error code 4001" do
+    state = WSHandlerInfo.new(gen_server_pid: self)
+
+    assert websocket_terminate({ :remote, 4001, "Message" }, :conn_state, state) == :ok
+
+    assert_received { :stop, { :remote, 4001, "Message" } }
+  end
+
+  test "terminating with error code 4007" do
+    state = WSHandlerInfo.new(gen_server_pid: self)
+
+    assert websocket_terminate({ :remote, 4007, "Message" }, :conn_state, state) == :ok
+
+    assert_received { :stop, { :remote, 4007, "Message" } }
+  end
+
+  test "terminating normally" do
+    assert websocket_terminate({ :normal, "Message" }, :conn_state, nil) == :ok
   end
 
 end
