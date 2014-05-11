@@ -16,6 +16,6 @@ defmodule PusherClient.Mixfile do
     [ { :websocket_client, github: "jeremyong/websocket_client" },
       { :exlager, github: "khia/exlager" },
       { :jsex, "~> 2.0" },
-      { :meck, github: "eproxus/meck", tag: "0.8.2" } ]
+      { :meck, github: "eproxus/meck", tag: "0.8.2", only: :test } ]
   end
 end
