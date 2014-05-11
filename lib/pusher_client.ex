@@ -12,7 +12,7 @@ defmodule PusherClient do
   """
   def connect!(url) when is_list(url) do
     { :ok, gen_event_pid } = :gen_event.start_link
-    query = "?" <> URI.encode_query([protocol: protocol])
+    query = "?" <> URI.encode_query(%{protocol: protocol})
     :gen_server.start(PusherClient, [url ++ to_char_list(query), gen_event_pid], [])
   end
   def connect!(url) when is_binary(url), do: connect!(url |> to_char_list)

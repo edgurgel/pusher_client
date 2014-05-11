@@ -30,10 +30,10 @@ defmodule PusherClient.WSHandlerTest do
   test "handle connection established event" do
     state = WSHandlerInfo.new(gen_event_pid: self)
     socket_id = "87381"
-    event = [
-              { "event", "pusher:connection_established" },
-              { "data", [ { "socket_id", socket_id } ] }
-            ]
+    event = %{
+               "event" => "pusher:connection_established",
+               "data" => %{ "socket_id" => socket_id }
+            }
     expect(JSEX, :decode!, 1, event)
 
     assert websocket_handle({:text, :event}, :conn_state, state) ==
@@ -48,16 +48,16 @@ defmodule PusherClient.WSHandlerTest do
 
     state = WSHandlerInfo.new(gen_event_pid: gen_event_pid)
     channel = "public-channel"
-    event = [
-              { "event", "pusher_internal:subscription_succeeded" },
-              { "channel", channel },
-              { "data", [ ] }
-            ]
+    event = %{
+               "event" => "pusher_internal:subscription_succeeded",
+               "channel" => channel,
+               "data" => %{}
+             }
     expect(JSEX, :decode!, 1, event)
 
     assert websocket_handle({:text, :event}, :conn_state, state) == { :ok, state }
     assert :gen_event.call(gen_event_pid, EventHandler, :events) ==
-      [{"public-channel", "pusher:subscription_succeeded", []}]
+      [{"public-channel", "pusher:subscription_succeeded", %{}}]
 
     assert validate JSEX
   end
@@ -68,16 +68,16 @@ defmodule PusherClient.WSHandlerTest do
 
     state = WSHandlerInfo.new(gen_event_pid: gen_event_pid)
     channel = "public-channel"
-    event = [
-              { "event", "message" },
-              { "channel", channel },
-              { "data", [ { "etc", "anything" } ] }
-            ]
+    event = %{
+               "event" => "message",
+               "channel" => channel,
+               "data" => %{ "etc" => "anything" }
+            }
     expect(JSEX, :decode!, 1, event)
 
     assert websocket_handle({:text, :event}, :conn_state, state) == { :ok, state }
     assert :gen_event.call(gen_event_pid, EventHandler, :events) ==
-      [{"public-channel", "message", [{"etc", "anything"}]}]
+      [{"public-channel", "message", %{"etc" => "anything"}}]
 
     :gen_event.stop(gen_event_pid)
     assert validate JSEX
