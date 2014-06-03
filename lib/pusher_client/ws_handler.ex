@@ -9,14 +9,14 @@ defmodule PusherClient.WSHandler do
 
   def protocol, do: @protocol
 
-  defrecord WSHandlerInfo, gen_server_pid: nil, gen_event_pid: nil, socket_id: nil do
-    record_type gen_server_pid: pid, gen_event_pid: pid, socket_id: nil | binary
+  defmodule State do
+    defstruct gen_server_pid: nil, gen_event_pid: nil, socket_id: nil
   end
 
   @doc false
   def init({gen_server_pid, gen_event_pid}, _conn_state) do
-    { :ok, WSHandlerInfo.new(gen_server_pid: gen_server_pid,
-                             gen_event_pid: gen_event_pid) }
+    { :ok, %State{gen_server_pid: gen_server_pid,
+                  gen_event_pid: gen_event_pid} }
   end
 
   @doc false
@@ -59,7 +59,7 @@ defmodule PusherClient.WSHandler do
   def websocket_terminate(reason, _conn_state, state) do
     do_websocket_terminate(reason, state)
   end
-  def do_websocket_terminate(reason, WSHandlerInfo[gen_server_pid: gen_server_pid]) do
+  def do_websocket_terminate(reason, %State{gen_server_pid: gen_server_pid}) do
     Lager.info "Websocket closed: #{inspect reason}"
     send(gen_server_pid, {:stop, reason})
     :ok
@@ -69,13 +69,13 @@ defmodule PusherClient.WSHandler do
   defp handle_event("pusher:connection_established", event, state) do
     socket_id = event["data"]["socket_id"]
     Lager.info "Connection established on socket id: #{socket_id}"
-    { :ok, state.update(socket_id: socket_id) }
+    { :ok, %{state | socket_id: socket_id} }
   end
-  defp handle_event("pusher_internal:subscription_succeeded", event, WSHandlerInfo[gen_event_pid: gen_event_pid] = state) do
+  defp handle_event("pusher_internal:subscription_succeeded", event, %State{gen_event_pid: gen_event_pid} = state) do
     notify(gen_event_pid, event, "pusher:subscription_succeeded")
     { :ok, state }
   end
-  defp handle_event(event_name, event, WSHandlerInfo[gen_event_pid: gen_event_pid] = state) do
+  defp handle_event(event_name, event, %State{gen_event_pid: gen_event_pid} = state) do
     notify(gen_event_pid, event, event_name)
     { :ok, state }
   end

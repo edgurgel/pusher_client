@@ -3,8 +3,8 @@ defmodule PusherClient do
   require Lager
   import PusherClient.WSHandler, only: [protocol: 0]
 
-  defrecord ClientInfo, gen_event_pid: nil, ws_pid: nil do
-    record_type gen_event_pid: pid, ws_pid: nil
+  defmodule State do
+    defstruct gen_event_pid: nil, ws_pid: nil
   end
 
   @doc """
@@ -25,10 +25,10 @@ defmodule PusherClient do
   end
 
   @doc """
-  Returns actual client information with gen_event_pid and ws_pid
+  Returns current client information with gen_event_pid and ws_pid
   GenEvent stuff (add_handler, delete_handler, call, ...) can use gen_event_pid
   """
-  def client_info(pid), do: :gen_server.call(pid, :client_info)
+  def gen_event_pid(pid), do: :gen_server.call(pid, :gen_event_pid)
 
   @doc """
   Subscribe to `channel`
@@ -48,22 +48,24 @@ defmodule PusherClient do
   def init([url, gen_event_pid]) do
     case :websocket_client.start_link(url, PusherClient.WSHandler, { self, gen_event_pid  }) do
       { :ok, ws_pid } ->
-        { :ok, ClientInfo.new(ws_pid: ws_pid, gen_event_pid: gen_event_pid) }
+        { :ok, %State{ws_pid: ws_pid, gen_event_pid: gen_event_pid} }
       { :error, reason } -> { :stop, reason }
     end
   end
 
   @doc false
-  def handle_call(:client_info, _from, state), do: { :reply, state, state }
-  def handle_call({ :subscribe, channel }, _from, ClientInfo[ws_pid: ws_pid] = state) do
+  def handle_call(:gen_event_pid, _from, state) do
+    { :reply, state, state.gen_event_pid }
+  end
+  def handle_call({ :subscribe, channel }, _from, %State{ws_pid: ws_pid} = state) do
     send ws_pid, { :subscribe, channel }
     { :reply, :ok, state }
   end
-  def handle_call({ :unsubscribe, channel }, _from, ClientInfo[ws_pid: ws_pid] = state) do
+  def handle_call({ :unsubscribe, channel }, _from, %State{ws_pid: ws_pid} = state) do
     send ws_pid, { :unsubscribe, channel }
     { :reply, :ok, state }
   end
-  def handle_call(:stop, _from, ClientInfo[ws_pid: ws_pid] = _state) do
+  def handle_call(:stop, _from, %State{ws_pid: ws_pid} = _state) do
     Lager.info "Disconnecting"
     send ws_pid, :stop
     # Check this reply!

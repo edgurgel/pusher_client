@@ -1,7 +1,7 @@
 defmodule PusherClient.WSHandlerTest do
   use ExUnit.Case
   alias PusherClient.PusherEvent
-  alias PusherClient.WSHandler.WSHandlerInfo
+  alias PusherClient.WSHandler.State
   import :meck
   import PusherClient.WSHandler
 
@@ -24,11 +24,11 @@ defmodule PusherClient.WSHandlerTest do
 
   test "init" do
     assert init({:gen_server_pid, :gen_event_pid}, :conn_state) ==
-      { :ok, WSHandlerInfo.new(gen_server_pid: :gen_server_pid, gen_event_pid: :gen_event_pid) }
+      { :ok, %State{gen_server_pid: :gen_server_pid, gen_event_pid: :gen_event_pid} }
   end
 
   test "handle connection established event" do
-    state = WSHandlerInfo.new(gen_event_pid: self)
+    state = %State{gen_event_pid: self}
     socket_id = "87381"
     event = %{
                "event" => "pusher:connection_established",
@@ -37,7 +37,7 @@ defmodule PusherClient.WSHandlerTest do
     expect(JSEX, :decode!, 1, event)
 
     assert websocket_handle({:text, :event}, :conn_state, state) ==
-      { :ok, WSHandlerInfo.new(gen_event_pid: self, socket_id: socket_id) }
+      { :ok, %State{gen_event_pid: self, socket_id: socket_id} }
 
     assert validate JSEX
   end
@@ -46,7 +46,7 @@ defmodule PusherClient.WSHandlerTest do
     { :ok, gen_event_pid } = :gen_event.start_link
     :gen_event.add_handler(gen_event_pid, EventHandler, [])
 
-    state = WSHandlerInfo.new(gen_event_pid: gen_event_pid)
+    state = %State{gen_event_pid: gen_event_pid}
     channel = "public-channel"
     event = %{
                "event" => "pusher_internal:subscription_succeeded",
@@ -66,7 +66,7 @@ defmodule PusherClient.WSHandlerTest do
     { :ok, gen_event_pid } = :gen_event.start_link
     :gen_event.add_handler(gen_event_pid, EventHandler, [])
 
-    state = WSHandlerInfo.new(gen_event_pid: gen_event_pid)
+    state = %State{gen_event_pid: gen_event_pid}
     channel = "public-channel"
     event = %{
                "event" => "message",
@@ -102,7 +102,7 @@ defmodule PusherClient.WSHandlerTest do
   end
 
   test "terminating with error code 4001" do
-    state = WSHandlerInfo.new(gen_server_pid: self)
+    state = %State{gen_server_pid: self}
 
     assert websocket_terminate({ :remote, 4001, "Message" }, :conn_state, state) == :ok
 
@@ -110,7 +110,7 @@ defmodule PusherClient.WSHandlerTest do
   end
 
   test "terminating with error code 4007" do
-    state = WSHandlerInfo.new(gen_server_pid: self)
+    state = %State{gen_server_pid: self}
 
     assert websocket_terminate({ :remote, 4007, "Message" }, :conn_state, state) == :ok
 
