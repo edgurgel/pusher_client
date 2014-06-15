@@ -5,7 +5,7 @@ Websocket client to Pusher service
 ## Usage
 
 ```iex
-iex> {:ok, pid} = PusherClient.connect!('ws://localhost:8080/app/app_key')
+iex> {:ok, pid} = PusherClient.start_link('ws://localhost:8080/app/app_key')
 {:ok, #PID<0.134.0>}
 iex> PusherClient.subscribe!(pid, "channel")
 :ok
@@ -15,7 +15,7 @@ Now, describe a event handler to receive events from this connection:
 
 ```elixir
 defmodule EventHandler do
-  use GenEvent.Behaviour
+  use GenEvent
 
   def init(_), do: { :ok, nil }
 
@@ -31,10 +31,9 @@ end
 The `EventHandler` just print the received event. Now we add the handler and trigger an event:
 
 ```iex
-iex> info = PusherClient.client_info(pid)
-PusherClient.ClientInfo[gen_event_pid: #PID<0.130.0>, ws_pid: #PID<0.132.0>]
-iex> :gen_event.add_handler(info.gen_event_pid, PusherClient.EventHandler, nil)
+iex> PusherClient.add_handler(pid, EventHandler)
 :ok
+# After an event:
 {"channel", "message", [{"text", "Hello!"}]}
 ```
 
@@ -52,4 +51,3 @@ iex> 17:47:33.520 [info] Terminated: {:normal, "Normal shutdown"}
 
 * Support private and presence channels;
 * Add supervisors?
-* Add tests to PusherClient module;
