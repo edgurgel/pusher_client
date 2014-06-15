@@ -8,7 +8,7 @@ defmodule PusherClient do
   @protocol 7
 
   defmodule State do
-    defstruct gen_server_pid: nil, gen_event_pid: nil, socket_id: nil
+    defstruct gen_event_pid: nil, socket_id: nil
   end
 
   def start_link(url) when is_list(url) do
@@ -22,6 +22,8 @@ defmodule PusherClient do
   def subscribe!(pid, channel), do: send(pid, {:subscribe, channel})
 
   def unsubscribe!(pid, channel), do: send(pid, {:unsubscribe, channel})
+
+  def add_handler(pid, module), do: send(pid, {:add_handler, module})
 
   def disconnect!(pid), do: send(pid, :stop)
 
@@ -45,6 +47,10 @@ defmodule PusherClient do
   def websocket_info({ :unsubscribe, channel }, _conn_state, state) do
     event = PusherEvent.unsubscribe(channel)
     { :reply, { :text, event }, state }
+  end
+  def websocket_info({ :add_handler, module}, _conn_state, %State{gen_event_pid: gen_event_pid} = state) do
+    :gen_event.add_handler(gen_event_pid, module, nil)
+    { :ok, state}
   end
   def websocket_info(:stop, _conn_state, _state) do
     { :close, "Normal shutdown", nil }
@@ -71,9 +77,7 @@ defmodule PusherClient do
   def websocket_terminate(reason, _conn_state, state) do
     do_websocket_terminate(reason, state)
   end
-  def do_websocket_terminate(reason, %State{gen_server_pid: gen_server_pid}) do
-    Lager.info "Websocket closed: #{inspect reason}"
-    send(gen_server_pid, {:stop, reason})
+  def do_websocket_terminate(reason, _state) do
     :ok
   end
 
