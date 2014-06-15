@@ -1,83 +1,98 @@
 defmodule PusherClient do
-  use GenServer.Behaviour
+  @moduledoc """
+  Websocket Handler based on the Pusher Protocol: http://pusher.com/docs/pusher_protocol
+  """
   require Lager
-  import PusherClient.WSHandler, only: [protocol: 0]
+  alias PusherClient.PusherEvent
+
+  @protocol 7
 
   defmodule State do
-    defstruct gen_event_pid: nil, ws_pid: nil
+    defstruct gen_server_pid: nil, gen_event_pid: nil, socket_id: nil
   end
 
-  @doc """
-  Connect to a websocket `url`
-  """
-  def connect!(url) when is_list(url) do
+  def start_link(url) when is_list(url) do
+    query = "?" <> URI.encode_query(%{protocol: @protocol})
+    :websocket_client.start_link(url ++ to_char_list(query), __MODULE__, [])
+  end
+  def start_link(url) when is_binary(url) do
+    start_link(url |> to_char_list)
+  end
+
+  def subscribe!(pid, channel), do: send(pid, {:subscribe, channel})
+
+  def unsubscribe!(pid, channel), do: send(pid, {:unsubscribe, channel})
+
+  def disconnect!(pid), do: send(pid, :stop)
+
+  @doc false
+  def init(url, _conn_state) do
     { :ok, gen_event_pid } = :gen_event.start_link
-    query = "?" <> URI.encode_query(%{protocol: protocol})
-    :gen_server.start(PusherClient, [url ++ to_char_list(query), gen_event_pid], [])
-  end
-  def connect!(url) when is_binary(url), do: connect!(url |> to_char_list)
-
-  @doc """
-  Disconnect from an open websocket connection passing.
-  """
-  def disconnect!(pid) do
-    :gen_server.call(pid, :stop)
-  end
-
-  @doc """
-  Returns current client information with gen_event_pid and ws_pid
-  GenEvent stuff (add_handler, delete_handler, call, ...) can use gen_event_pid
-  """
-  def gen_event_pid(pid), do: :gen_server.call(pid, :gen_event_pid)
-
-  @doc """
-  Subscribe to `channel`
-  """
-  def subscribe!(pid, channel) do
-    :gen_server.call(pid, { :subscribe, channel })
-  end
-
-  @doc """
-  Unsubscribe from`channel`
-  """
-  def unsubscribe!(pid, channel) do
-    :gen_server.call(pid, { :unsubscribe, channel })
+    { :ok, %State{gen_event_pid: gen_event_pid} }
   end
 
   @doc false
-  def init([url, gen_event_pid]) do
-    case :websocket_client.start_link(url, PusherClient.WSHandler, { self, gen_event_pid  }) do
-      { :ok, ws_pid } ->
-        { :ok, %State{ws_pid: ws_pid, gen_event_pid: gen_event_pid} }
-      { :error, reason } -> { :stop, reason }
-    end
+  def websocket_handle({ :text, event }, _conn_state, state) do
+    event = JSEX.decode!(event)
+    handle_event(event["event"], event, state)
   end
 
   @doc false
-  def handle_call(:gen_event_pid, _from, state) do
-    { :reply, state, state.gen_event_pid }
+  def websocket_info({ :subscribe, channel }, _conn_state, state) do
+    event = PusherEvent.subscribe(channel)
+    { :reply, { :text, event }, state }
   end
-  def handle_call({ :subscribe, channel }, _from, %State{ws_pid: ws_pid} = state) do
-    send ws_pid, { :subscribe, channel }
-    { :reply, :ok, state }
+  def websocket_info({ :unsubscribe, channel }, _conn_state, state) do
+    event = PusherEvent.unsubscribe(channel)
+    { :reply, { :text, event }, state }
   end
-  def handle_call({ :unsubscribe, channel }, _from, %State{ws_pid: ws_pid} = state) do
-    send ws_pid, { :unsubscribe, channel }
-    { :reply, :ok, state }
+  def websocket_info(:stop, _conn_state, _state) do
+    { :close, "Normal shutdown", nil }
   end
-  def handle_call(:stop, _from, %State{ws_pid: ws_pid} = _state) do
-    Lager.info "Disconnecting"
-    send ws_pid, :stop
-    # Check this reply!
-    { :stop, :normal, :ok, nil}
+  def websocket_info(info, _conn_state, state) do
+    Lager.info "info: #{inspect info}"
+    { :ok, state }
   end
 
-  def handle_info({ :stop, reason }, _state) do
-    { :stop, reason, nil }
+  @doc false
+  def websocket_terminate({_close, 4001, _message} = reason, _conn_state, state) do
+    Lager.error "Wrong app_key"
+    do_websocket_terminate(reason, state)
+  end
+  def websocket_terminate({_close, 4007, _message} = reason, _conn_state, state) do
+    Lager.error "Pusher server does not support current protocol #{@protocol}"
+    do_websocket_terminate(reason, state)
+  end
+  def websocket_terminate({_close, code, payload } = reason, _conn_state, state) do
+    Lager.info "Websocket close with code #{code} and payload '#{payload}'."
+    do_websocket_terminate(reason, state)
+  end
+  def websocket_terminate({:normal, _message}, _conn_state, nil), do: :ok
+  def websocket_terminate(reason, _conn_state, state) do
+    do_websocket_terminate(reason, state)
+  end
+  def do_websocket_terminate(reason, %State{gen_server_pid: gen_server_pid}) do
+    Lager.info "Websocket closed: #{inspect reason}"
+    send(gen_server_pid, {:stop, reason})
+    :ok
   end
 
-  def terminate(reason, _state) do
-    Lager.info "Terminating, reason: #{inspect reason}"
-    { :shutdown, reason }
+  @doc false
+  defp handle_event("pusher:connection_established", event, state) do
+    socket_id = event["data"]["socket_id"]
+    Lager.info "Connection established on socket id: #{socket_id}"
+    { :ok, %{state | socket_id: socket_id} }
+  end
+  defp handle_event("pusher_internal:subscription_succeeded", event, %State{gen_event_pid: gen_event_pid} = state) do
+    notify(gen_event_pid, event, "pusher:subscription_succeeded")
+    { :ok, state }
+  end
+  defp handle_event(event_name, event, %State{gen_event_pid: gen_event_pid} = state) do
+    notify(gen_event_pid, event, event_name)
+    { :ok, state }
+  end
+
+  defp notify(gen_event_pid, event, name) do
+    :gen_event.notify(gen_event_pid, { event["channel"], name, event["data"] })
   end
 end
