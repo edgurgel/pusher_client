@@ -118,19 +118,15 @@ defmodule PusherClient.WSHandlerTest do
   end
 
   test "terminating with error code 4001" do
-    state = %State{gen_server_pid: self}
+    state = %State{}
 
     assert websocket_terminate({ :remote, 4001, "Message" }, :conn_state, state) == :ok
-
-    assert_received { :stop, { :remote, 4001, "Message" } }
   end
 
   test "terminating with error code 4007" do
-    state = %State{gen_server_pid: self}
+    state = %State{}
 
     assert websocket_terminate({ :remote, 4007, "Message" }, :conn_state, state) == :ok
-
-    assert_received { :stop, { :remote, 4007, "Message" } }
   end
 
   test "terminating normally" do
