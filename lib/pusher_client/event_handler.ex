@@ -1,5 +1,5 @@
 defmodule PusherClient.EventHandler do
-  use GenEvent.Behaviour
+  use GenEvent
   @moduledoc """
   Dummy event handler for testing purposes
   """

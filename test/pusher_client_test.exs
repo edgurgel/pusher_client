@@ -15,11 +15,8 @@ defmodule PusherClient.WSHandlerTest do
   setup do
     new JSEX
     new PusherEvent
-  end
-
-  teardown do
-    unload JSEX
-    unload PusherEvent
+    on_exit fn -> unload end
+    :ok
   end
 
   test "init" do
