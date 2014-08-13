@@ -23,7 +23,9 @@ defmodule PusherClient do
 
   def unsubscribe!(pid, channel), do: send(pid, {:unsubscribe, channel})
 
-  def add_handler(pid, module), do: send(pid, {:add_handler, module})
+  def add_handler(pid, module, args), do: send(pid, {:add_handler, module, args})
+
+  def add_sup_handler(pid, module, args), do: send(pid, {:add_sup_handler, module, args})
 
   def disconnect!(pid), do: send(pid, :stop)
 
@@ -48,8 +50,12 @@ defmodule PusherClient do
     event = PusherEvent.unsubscribe(channel)
     { :reply, { :text, event }, state }
   end
-  def websocket_info({ :add_handler, module}, _conn_state, %State{gen_event_pid: gen_event_pid} = state) do
-    :gen_event.add_handler(gen_event_pid, module, nil)
+  def websocket_info({ :add_handler, module, args}, _conn_state, %State{gen_event_pid: gen_event_pid} = state) do
+    :gen_event.add_handler(gen_event_pid, module, args)
+    { :ok, state}
+  end
+  def websocket_info({ :add_sup_handler, module, args}, _conn_state, %State{gen_event_pid: gen_event_pid} = state) do
+    :gen_event.add_sup_handler(gen_event_pid, module, args)
     { :ok, state}
   end
   def websocket_info(:stop, _conn_state, _state) do
