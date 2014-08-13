@@ -103,6 +103,6 @@ defmodule PusherClient do
   end
 
   defp notify(gen_event_pid, event, name) do
-    :gen_event.notify(gen_event_pid, { event["channel"], name, event["data"] })
+    :gen_event.sync_notify(gen_event_pid, { event["channel"], name, event["data"] })
   end
 end
