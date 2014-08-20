@@ -1,7 +1,4 @@
-%{"exlager": {:git, "git://github.com/khia/exlager.git", "99eb3fb763ae546edfe2ac3dd181987a4872dfcc", []},
-  "goldrush": {:git, "git://github.com/DeadZen/goldrush.git", "71e63212f12c25827e0c1b4198d37d5d018a7fec", [tag: "0.1.6"]},
-  "jsex": {:package, "2.0.0"},
+%{"jsex": {:package, "2.0.0"},
   "jsx": {:package, "2.0.2"},
-  "lager": {:git, "https://github.com/basho/lager.git", "4d8291edb72a25ac0efde907e2ecaa115108ff90", []},
   "meck": {:package, "0.8.2"},
   "websocket_client": {:git, "git://github.com/jeremyong/websocket_client.git", "f597b7d5d20ad691b3f0a715dffeb59fdb03385c", []}}

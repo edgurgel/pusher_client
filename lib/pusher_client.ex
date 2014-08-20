@@ -2,7 +2,7 @@ defmodule PusherClient do
   @moduledoc """
   Websocket Handler based on the Pusher Protocol: http://pusher.com/docs/pusher_protocol
   """
-  require Lager
+  require Logger
   alias PusherClient.PusherEvent
 
   @protocol 7
@@ -62,21 +62,21 @@ defmodule PusherClient do
     { :close, "Normal shutdown", nil }
   end
   def websocket_info(info, _conn_state, state) do
-    Lager.info "info: #{inspect info}"
+    Logger.info "info: #{inspect info}"
     { :ok, state }
   end
 
   @doc false
   def websocket_terminate({_close, 4001, _message} = reason, _conn_state, state) do
-    Lager.error "Wrong app_key"
+    Logger.error "Wrong app_key"
     do_websocket_terminate(reason, state)
   end
   def websocket_terminate({_close, 4007, _message} = reason, _conn_state, state) do
-    Lager.error "Pusher server does not support current protocol #{@protocol}"
+    Logger.error "Pusher server does not support current protocol #{@protocol}"
     do_websocket_terminate(reason, state)
   end
   def websocket_terminate({_close, code, payload } = reason, _conn_state, state) do
-    Lager.info "Websocket close with code #{code} and payload '#{payload}'."
+    Logger.info "Websocket close with code #{code} and payload '#{payload}'."
     do_websocket_terminate(reason, state)
   end
   def websocket_terminate({:normal, _message}, _conn_state, nil), do: :ok
@@ -90,7 +90,7 @@ defmodule PusherClient do
   @doc false
   defp handle_event("pusher:connection_established", event, state) do
     socket_id = event["data"]["socket_id"]
-    Lager.info "Connection established on socket id: #{socket_id}"
+    Logger.info "Connection established on socket id: #{socket_id}"
     { :ok, %{state | socket_id: socket_id} }
   end
   defp handle_event("pusher_internal:subscription_succeeded", event, %State{gen_event_pid: gen_event_pid} = state) do
