@@ -3,5 +3,5 @@
   "jsex": {:package, "2.0.0"},
   "jsx": {:package, "2.0.2"},
   "lager": {:git, "https://github.com/basho/lager.git", "4d8291edb72a25ac0efde907e2ecaa115108ff90", []},
-  "meck": {:git, "git://github.com/eproxus/meck.git", "dde759050eff19a1a80fd854d7375174b191665d", [tag: "0.8.2"]},
+  "meck": {:package, "0.8.2"},
   "websocket_client": {:git, "git://github.com/jeremyong/websocket_client.git", "f597b7d5d20ad691b3f0a715dffeb59fdb03385c", []}}
