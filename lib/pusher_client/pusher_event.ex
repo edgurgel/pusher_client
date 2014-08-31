@@ -1,5 +1,5 @@
 defmodule PusherClient.PusherEvent do
-  import JSEX, only: [encode!: 1]
+  import JSEX
   alias PusherClient.Credential
 
   @doc """
