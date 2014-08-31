@@ -5,7 +5,7 @@ Websocket client to Pusher service
 ## Usage
 
 ```iex
-iex> {:ok, pid} = PusherClient.start_link('ws://localhost:8080/app/app_key')
+iex> {:ok, pid} = PusherClient.start_link("ws://localhost:8080", "app_key", "secret")
 {:ok, #PID<0.134.0>}
 iex> PusherClient.subscribe!(pid, "channel")
 :ok

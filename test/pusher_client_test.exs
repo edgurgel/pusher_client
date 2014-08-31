@@ -2,6 +2,7 @@ defmodule PusherClient.WSHandlerTest do
   use ExUnit.Case
   alias PusherClient.PusherEvent
   alias PusherClient.State
+  alias PusherClient.Credential
   import PusherClient
   import :meck
 
@@ -20,22 +21,23 @@ defmodule PusherClient.WSHandlerTest do
   end
 
   test "init" do
-    assert { :ok, %State{gen_event_pid: pid} } = init({:gen_server_pid, :gen_event_pid}, :conn_state)
+    credential = %Credential{app_key: "key", secret: "secret"}
+    assert { :ok, %State{gen_event_pid: pid, credential: ^credential} } = init(["key", "secret"], :conn_state)
     assert is_pid(pid)
   end
 
   test "connect to an url using Elixir string" do
-    expect(:websocket_client, :start_link, [{['http://websocket.example?protocol=7', PusherClient, :_], { :ok, :ws_pid }}])
+    expect(:websocket_client, :start_link, [{['http://websocket.example/app/key?protocol=7', PusherClient, ["key", "secret"]], { :ok, :ws_pid }}])
 
-    assert {:ok, :ws_pid} == start_link("http://websocket.example")
+    assert {:ok, :ws_pid} == start_link("http://websocket.example", "key", "secret")
 
     assert validate :websocket_client
   end
 
   test "connect to an url using Erlang string" do
-    expect(:websocket_client, :start_link, [{['http://websocket.example?protocol=7', PusherClient, :_], { :ok, :ws_pid }}])
+    expect(:websocket_client, :start_link, [{['http://websocket.example/app/key?protocol=7', PusherClient, ["key", "secret"]], { :ok, :ws_pid }}])
 
-    assert {:ok, :ws_pid} == start_link('http://websocket.example')
+    assert {:ok, :ws_pid} == start_link('http://websocket.example', "key", "secret")
 
     assert validate :websocket_client
   end
@@ -96,11 +98,23 @@ defmodule PusherClient.WSHandlerTest do
     assert validate JSEX
   end
 
-  test "subscribe to a channel" do
+  test "subscribe to a public channel" do
     expect(PusherEvent, :subscribe, 1, :event_subscribe_json)
 
-    assert websocket_info({ :subscribe, "channel" }, :conn_state, :state) ==
-      { :reply, { :text, :event_subscribe_json}, :state }
+    assert websocket_info({:subscribe, "channel"}, :conn_state, :state) ==
+      {:reply, {:text, :event_subscribe_json}, :state}
+
+    assert validate PusherEvent
+  end
+
+  test "subscribe to a private channel" do
+    credential = %Credential{app_key: "key", secret: "secret"}
+    expect(PusherEvent, :subscribe, [{["private-channel", "123", credential], :event_subscribe_json}])
+
+    state = %State{socket_id: "123",
+                   credential: credential}
+    assert websocket_info({:subscribe, "private-channel"}, :conn_state, state) ==
+      {:reply, {:text, :event_subscribe_json}, state}
 
     assert validate PusherEvent
   end
@@ -108,8 +122,8 @@ defmodule PusherClient.WSHandlerTest do
   test "unsubscribe from a channel" do
     expect(PusherEvent, :unsubscribe, 1, :event_unsubscribe_json)
 
-    assert websocket_info({ :unsubscribe, "channel" }, :conn_state, :state) ==
-      { :reply, { :text, :event_unsubscribe_json}, :state }
+    assert websocket_info({:unsubscribe, "channel"}, :conn_state, :state) ==
+      {:reply, {:text, :event_unsubscribe_json}, :state}
 
     assert validate PusherEvent
   end
@@ -117,17 +131,16 @@ defmodule PusherClient.WSHandlerTest do
   test "terminating with error code 4001" do
     state = %State{}
 
-    assert websocket_terminate({ :remote, 4001, "Message" }, :conn_state, state) == :ok
+    assert websocket_terminate({:remote, 4001, "Message"}, :conn_state, state) == :ok
   end
 
   test "terminating with error code 4007" do
     state = %State{}
 
-    assert websocket_terminate({ :remote, 4007, "Message" }, :conn_state, state) == :ok
+    assert websocket_terminate({:remote, 4007, "Message"}, :conn_state, state) == :ok
   end
 
   test "terminating normally" do
-    assert websocket_terminate({ :normal, "Message" }, :conn_state, nil) == :ok
+    assert websocket_terminate({:normal, "Message"}, :conn_state, nil) == :ok
   end
-
 end

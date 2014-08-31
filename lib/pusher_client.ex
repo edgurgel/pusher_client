@@ -7,16 +7,21 @@ defmodule PusherClient do
 
   @protocol 7
 
-  defmodule State do
-    defstruct gen_event_pid: nil, socket_id: nil
+  defmodule Credential do
+    defstruct app_key: "app_key", secret: "secret"
   end
 
-  def start_link(url) when is_list(url) do
-    query = "?" <> URI.encode_query(%{protocol: @protocol})
-    :websocket_client.start_link(url ++ to_char_list(query), __MODULE__, [])
+  defmodule State do
+    defstruct gen_event_pid: nil, socket_id: nil, credential: %Credential{}
   end
-  def start_link(url) when is_binary(url) do
-    start_link(url |> to_char_list)
+
+  def start_link(url, app_key, secret) when is_list(url) do
+    query = "?" <> URI.encode_query(%{protocol: @protocol})
+    url = url ++ '/app/' ++ to_char_list(app_key) ++ to_char_list(query)
+    :websocket_client.start_link(url, __MODULE__, [app_key, secret])
+  end
+  def start_link(url, app_key, secret) when is_binary(url) do
+    start_link(url |> to_char_list, app_key, secret)
   end
 
   def subscribe!(pid, channel), do: send(pid, {:subscribe, channel})
@@ -30,9 +35,10 @@ defmodule PusherClient do
   def disconnect!(pid), do: send(pid, :stop)
 
   @doc false
-  def init(url, _conn_state) do
+  def init([app_key, secret], _conn_state) do
     { :ok, gen_event_pid } = :gen_event.start_link
-    { :ok, %State{gen_event_pid: gen_event_pid} }
+    credential = %Credential{app_key: app_key, secret: secret}
+    { :ok, %State{gen_event_pid: gen_event_pid, credential: credential} }
   end
 
   @doc false
@@ -42,6 +48,10 @@ defmodule PusherClient do
   end
 
   @doc false
+  def websocket_info({ :subscribe, channel = "private-" <> _ }, _conn_state, state) do
+    event = PusherEvent.subscribe(channel, state.socket_id, state.credential)
+    { :reply, { :text, event }, state }
+  end
   def websocket_info({ :subscribe, channel }, _conn_state, state) do
     event = PusherEvent.subscribe(channel)
     { :reply, { :text, event }, state }
