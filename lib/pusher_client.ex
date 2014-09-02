@@ -12,33 +12,34 @@ defmodule PusherClient do
   end
 
   defmodule State do
-    defstruct gen_event_pid: nil, socket_id: nil, credential: %Credential{}
+    defstruct stream_to: nil, socket_id: nil, credential: %Credential{}
   end
 
-  def start_link(url, app_key, secret) when is_list(url) do
-    query = "?" <> URI.encode_query(%{protocol: @protocol})
-    url = url ++ '/app/' ++ to_char_list(app_key) ++ to_char_list(query)
-    :websocket_client.start_link(url, __MODULE__, [app_key, secret])
+  def start_link(url, app_key, secret, options \\ [])
+  def start_link(url, app_key, secret, options) when is_list(url) do
+    url = build_url(url, app_key)
+    :websocket_client.start_link(url, __MODULE__, [app_key, secret, options])
   end
-  def start_link(url, app_key, secret) when is_binary(url) do
-    start_link(url |> to_char_list, app_key, secret)
+  def start_link(url, app_key, secret, options) when is_binary(url) do
+    start_link(url |> to_char_list, app_key, secret, options)
+  end
+
+  defp build_url(url, app_key) do
+    query = "?" <> URI.encode_query(%{protocol: @protocol})
+    url ++ '/app/' ++ to_char_list(app_key) ++ to_char_list(query)
   end
 
   def subscribe!(pid, channel), do: send(pid, {:subscribe, channel})
 
   def unsubscribe!(pid, channel), do: send(pid, {:unsubscribe, channel})
 
-  def add_handler(pid, module, args), do: send(pid, {:add_handler, module, args})
-
-  def add_sup_handler(pid, module, args), do: send(pid, {:add_sup_handler, module, args})
-
   def disconnect!(pid), do: send(pid, :stop)
 
   @doc false
-  def init([app_key, secret], _conn_state) do
-    { :ok, gen_event_pid } = :gen_event.start_link
+  def init([app_key, secret, options], _conn_state) do
+    stream_to = Keyword.get(options, :stream_to, nil)
     credential = %Credential{app_key: app_key, secret: secret}
-    { :ok, %State{gen_event_pid: gen_event_pid, credential: credential} }
+    { :ok, %State{stream_to: stream_to, credential: credential} }
   end
 
   @doc false
@@ -59,14 +60,6 @@ defmodule PusherClient do
   def websocket_info({ :unsubscribe, channel }, _conn_state, state) do
     event = PusherEvent.unsubscribe(channel)
     { :reply, { :text, event }, state }
-  end
-  def websocket_info({ :add_handler, module, args}, _conn_state, %State{gen_event_pid: gen_event_pid} = state) do
-    :gen_event.add_handler(gen_event_pid, module, args)
-    { :ok, state}
-  end
-  def websocket_info({ :add_sup_handler, module, args}, _conn_state, %State{gen_event_pid: gen_event_pid} = state) do
-    :gen_event.add_sup_handler(gen_event_pid, module, args)
-    { :ok, state}
   end
   def websocket_info(:stop, _conn_state, _state) do
     { :close, "Normal shutdown", nil }
@@ -93,26 +86,26 @@ defmodule PusherClient do
   def websocket_terminate(reason, _conn_state, state) do
     do_websocket_terminate(reason, state)
   end
-  def do_websocket_terminate(reason, _state) do
-    :ok
-  end
+  def do_websocket_terminate(_reason, _state), do: :ok
 
   @doc false
-  defp handle_event("pusher:connection_established", event, state) do
+  defp handle_event(event_name = "pusher:connection_established", event, state) do
     socket_id = event["data"]["socket_id"]
+    notify(state.stream_to, event, event_name)
     Logger.info "Connection established on socket id: #{socket_id}"
     { :ok, %{state | socket_id: socket_id} }
   end
-  defp handle_event("pusher_internal:subscription_succeeded", event, %State{gen_event_pid: gen_event_pid} = state) do
-    notify(gen_event_pid, event, "pusher:subscription_succeeded")
+  defp handle_event("pusher_internal:subscription_succeeded", event, state) do
+    notify(state.stream_to, event, "pusher:subscription_succeeded")
     { :ok, state }
   end
-  defp handle_event(event_name, event, %State{gen_event_pid: gen_event_pid} = state) do
-    notify(gen_event_pid, event, event_name)
+  defp handle_event(event_name, event, state) do
+    notify(state.stream_to, event, event_name)
     { :ok, state }
   end
 
-  defp notify(gen_event_pid, event, name) do
-    :gen_event.sync_notify(gen_event_pid, { event["channel"], name, event["data"] })
+  defp notify(nil, _, _), do: :ok
+  defp notify(stream_to, event, name) do
+    send stream_to, %{ event: name, channel: event["channel"], data: event["data"] }
   end
 end

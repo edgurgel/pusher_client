@@ -22,12 +22,11 @@ defmodule PusherClient.WSHandlerTest do
 
   test "init" do
     credential = %Credential{app_key: "key", secret: "secret"}
-    assert { :ok, %State{gen_event_pid: pid, credential: ^credential} } = init(["key", "secret"], :conn_state)
-    assert is_pid(pid)
+    assert { :ok, %State{stream_to: nil, credential: ^credential} } = init(["key", "secret", []], :conn_state)
   end
 
   test "connect to an url using Elixir string" do
-    expect(:websocket_client, :start_link, [{['http://websocket.example/app/key?protocol=7', PusherClient, ["key", "secret"]], { :ok, :ws_pid }}])
+    expect(:websocket_client, :start_link, [{['http://websocket.example/app/key?protocol=7', PusherClient, ["key", "secret", []]], { :ok, :ws_pid }}])
 
     assert {:ok, :ws_pid} == start_link("http://websocket.example", "key", "secret")
 
@@ -35,7 +34,7 @@ defmodule PusherClient.WSHandlerTest do
   end
 
   test "connect to an url using Erlang string" do
-    expect(:websocket_client, :start_link, [{['http://websocket.example/app/key?protocol=7', PusherClient, ["key", "secret"]], { :ok, :ws_pid }}])
+    expect(:websocket_client, :start_link, [{['http://websocket.example/app/key?protocol=7', PusherClient, ["key", "secret", []]], { :ok, :ws_pid }}])
 
     assert {:ok, :ws_pid} == start_link('http://websocket.example', "key", "secret")
 
@@ -43,7 +42,7 @@ defmodule PusherClient.WSHandlerTest do
   end
 
   test "handle connection established event" do
-    state = %State{gen_event_pid: self}
+    state = %State{stream_to: self}
     socket_id = "87381"
     event = %{
                "event" => "pusher:connection_established",
@@ -52,16 +51,13 @@ defmodule PusherClient.WSHandlerTest do
     expect(JSEX, :decode!, 1, event)
 
     assert websocket_handle({:text, :event}, :conn_state, state) ==
-      { :ok, %State{gen_event_pid: self, socket_id: socket_id} }
+      { :ok, %State{stream_to: self, socket_id: socket_id} }
 
     assert validate JSEX
   end
 
   test "handle subscription succeeded event" do
-    { :ok, gen_event_pid } = :gen_event.start_link
-    :gen_event.add_handler(gen_event_pid, EventHandler, [])
-
-    state = %State{gen_event_pid: gen_event_pid}
+    state = %State{stream_to: self}
     channel = "public-channel"
     event = %{
                "event" => "pusher_internal:subscription_succeeded",
@@ -71,17 +67,15 @@ defmodule PusherClient.WSHandlerTest do
     expect(JSEX, :decode!, 1, event)
 
     assert websocket_handle({:text, :event}, :conn_state, state) == { :ok, state }
-    assert :gen_event.call(gen_event_pid, EventHandler, :events) ==
-      [{"public-channel", "pusher:subscription_succeeded", %{}}]
+    assert_receive %{channel: "public-channel",
+                     event: "pusher:subscription_succeeded",
+                     data: %{}}
 
     assert validate JSEX
   end
 
   test "handle other events" do
-    { :ok, gen_event_pid } = :gen_event.start_link
-    :gen_event.add_handler(gen_event_pid, EventHandler, [])
-
-    state = %State{gen_event_pid: gen_event_pid}
+    state = %State{stream_to: self}
     channel = "public-channel"
     event = %{
                "event" => "message",
@@ -91,10 +85,10 @@ defmodule PusherClient.WSHandlerTest do
     expect(JSEX, :decode!, 1, event)
 
     assert websocket_handle({:text, :event}, :conn_state, state) == { :ok, state }
-    assert :gen_event.call(gen_event_pid, EventHandler, :events) ==
-      [{"public-channel", "message", %{"etc" => "anything"}}]
+    assert_receive %{channel: "public-channel",
+                     event: "message",
+                     data: %{"etc" => "anything"}}
 
-    :gen_event.stop(gen_event_pid)
     assert validate JSEX
   end
 
