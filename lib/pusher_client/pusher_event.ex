@@ -1,6 +1,7 @@
 defmodule PusherClient.PusherEvent do
   import JSEX
   alias PusherClient.Credential
+  alias PusherClient.User
 
   @doc """
   Return a JSON for a subscription request using the `channel` name as parameter
@@ -21,6 +22,24 @@ defmodule PusherClient.PusherEvent do
     %{ event: "pusher:subscribe",
        data: %{ channel: channel,
                 auth: auth }
+     } |> encode!
+  end
+
+  @doc """
+  Return a JSON for a subscription request using the presence `channel`, `socket_id`,
+  the `credential` and the `user`
+  """
+  def subscribe(channel, socket_id,
+                %Credential{secret: secret, app_key: app_key},
+                %User{id: user_id, info: user_info}) do
+    channel_data = %{ user_id: user_id,
+                      user_info: user_info } |> encode!
+    to_sign = socket_id <> ":" <> channel <> ":" <> channel_data
+    auth = app_key <> ":" <> hmac256(secret, to_sign)
+    %{ event: "pusher:subscribe",
+       data: %{ channel: channel,
+                auth: auth,
+                channel_data: channel_data }
      } |> encode!
   end
 

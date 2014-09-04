@@ -3,6 +3,7 @@ defmodule PusherClient.WSHandlerTest do
   alias PusherClient.PusherEvent
   alias PusherClient.State
   alias PusherClient.Credential
+  alias PusherClient.User
   import PusherClient
   import :meck
 
@@ -108,6 +109,19 @@ defmodule PusherClient.WSHandlerTest do
     state = %State{socket_id: "123",
                    credential: credential}
     assert websocket_info({:subscribe, "private-channel"}, :conn_state, state) ==
+      {:reply, {:text, :event_subscribe_json}, state}
+
+    assert validate PusherEvent
+  end
+
+  test "subscribe to a presence channel" do
+    credential = %Credential{app_key: "key", secret: "secret"}
+    user = %User{id: "123", info: %{}}
+    expect(PusherEvent, :subscribe, [{["presence-channel", "123", credential, user], :event_subscribe_json}])
+
+    state = %State{socket_id: "123",
+                   credential: credential}
+    assert websocket_info({:subscribe, "presence-channel", user}, :conn_state, state) ==
       {:reply, {:text, :event_subscribe_json}, state}
 
     assert validate PusherEvent

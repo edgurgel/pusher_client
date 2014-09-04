@@ -7,6 +7,10 @@ defmodule PusherClient do
 
   @protocol 7
 
+  defmodule User do
+    defstruct id: nil, info: %{}
+  end
+
   defmodule Credential do
     defstruct app_key: "app_key", secret: "secret"
   end
@@ -29,7 +33,12 @@ defmodule PusherClient do
     url ++ '/app/' ++ to_char_list(app_key) ++ to_char_list(query)
   end
 
-  def subscribe!(pid, channel), do: send(pid, {:subscribe, channel})
+  def subscribe!(pid, channel) when is_pid(pid) do
+    send pid, {:subscribe, channel}
+  end
+  def subscribe!(pid, channel, user = %User{}) when is_pid(pid) do
+    send pid, {:subscribe, channel, user}
+  end
 
   def unsubscribe!(pid, channel), do: send(pid, {:unsubscribe, channel})
 
@@ -51,6 +60,10 @@ defmodule PusherClient do
   @doc false
   def websocket_info({ :subscribe, channel = "private-" <> _ }, _conn_state, state) do
     event = PusherEvent.subscribe(channel, state.socket_id, state.credential)
+    { :reply, { :text, event }, state }
+  end
+  def websocket_info({ :subscribe, channel = "presence-" <> _ , user}, _conn_state, state) do
+    event = PusherEvent.subscribe(channel, state.socket_id, state.credential, user)
     { :reply, { :text, event }, state }
   end
   def websocket_info({ :subscribe, channel }, _conn_state, state) do

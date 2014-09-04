@@ -1,6 +1,7 @@
 defmodule PusherClient.EventTest do
   use ExUnit.Case
   alias PusherClient.Credential
+  alias PusherClient.User
   import PusherClient.PusherEvent
   import :meck
 
@@ -32,6 +33,27 @@ defmodule PusherClient.EventTest do
     expect(JSEX, :encode!, [{[event], :ok}])
 
     assert subscribe("private-foobar", "1234.1234", credential) == :ok
+
+    assert validate(JSEX)
+  end
+
+  # Using https://pusher.com/docs/auth_signatures as example
+  test "subscribe to presence channel" do
+    user = %User{id: 10, info: %{name: "Mr. Pusher"}}
+    channel_data = "{\"user_id\":10,\"user_info\":{\"name\":\"Mr. Pusher\"}}"
+    key = "278d425bdf160c739803"
+    secret = "7ad3773142a6692b25b8"
+    auth = "278d425bdf160c739803:afaed3695da2ffd16931f457e338e6c9f2921fa133ce7dac49f529792be6304c"
+    credential = %Credential{app_key: key, secret: secret}
+    event = %{event: "pusher:subscribe",
+              data: %{channel: "presence-foobar",
+                      auth: auth,
+                      channel_data: channel_data}}
+    expect(JSEX, :encode!,
+      [{[event], :ok},
+       {[%{user_id: 10, user_info: %{name: "Mr. Pusher"}}], channel_data}])
+
+    assert subscribe("presence-foobar", "1234.1234", credential, user) == :ok
 
     assert validate(JSEX)
   end
