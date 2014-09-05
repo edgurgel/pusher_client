@@ -9,6 +9,8 @@ iex> {:ok, pid} = PusherClient.start_link("ws://localhost:8080", "app_key", "sec
 {:ok, #PID<0.134.0>}
 iex> PusherClient.subscribe!(pid, "channel")
 :ok
+iex> PusherClient.subscribe!(pid, "presence-channel", %PusherClient.User{id: "123", info: %{a: "b"}})
+:ok
 ```
 
 ```iex
@@ -30,8 +32,3 @@ iex> PusherClient.disconnect!(pid)
 :shutdown_ok
 iex> 17:47:33.520 [info] Terminated: {:normal, "Normal shutdown"}
 ```
-
-## TODO
-
-* Support private and presence channels;
-* Add supervisors?
