@@ -103,7 +103,7 @@ defmodule PusherClient do
 
   @doc false
   defp handle_event(event_name = "pusher:connection_established", event, state) do
-    socket_id = event["data"]["socket_id"]
+    socket_id = fetch_data(event["data"])["socket_id"]
     notify(state.stream_to, event, event_name)
     Logger.info "Connection established on socket id: #{socket_id}"
     { :ok, %{state | socket_id: socket_id} }
@@ -119,6 +119,13 @@ defmodule PusherClient do
 
   defp notify(nil, _, _), do: :ok
   defp notify(stream_to, event, name) do
-    send stream_to, %{ event: name, channel: event["channel"], data: event["data"] }
+    send stream_to, %{ event: name, channel: event["channel"], data: fetch_data(event["data"]) }
+  end
+
+  defp fetch_data(data) do
+    case JSEX.decode(data) do
+      {:ok, data} -> data
+      _ -> data
+    end
   end
 end

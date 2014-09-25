@@ -50,6 +50,7 @@ defmodule PusherClient.WSHandlerTest do
                "data" => %{ "socket_id" => socket_id }
             }
     expect(JSEX, :decode!, 1, event)
+    expect(JSEX, :decode, 1, {:ok, event["data"]})
 
     assert websocket_handle({:text, :event}, :conn_state, state) ==
       { :ok, %State{stream_to: self, socket_id: socket_id} }
@@ -66,6 +67,7 @@ defmodule PusherClient.WSHandlerTest do
                "data" => %{}
              }
     expect(JSEX, :decode!, 1, event)
+    expect(JSEX, :decode, 1, {:ok, event["data"]})
 
     assert websocket_handle({:text, :event}, :conn_state, state) == { :ok, state }
     assert_receive %{channel: "public-channel",
@@ -75,7 +77,7 @@ defmodule PusherClient.WSHandlerTest do
     assert validate JSEX
   end
 
-  test "handle other events" do
+  test "handle other events with encoded data" do
     state = %State{stream_to: self}
     channel = "public-channel"
     event = %{
@@ -84,6 +86,26 @@ defmodule PusherClient.WSHandlerTest do
                "data" => %{ "etc" => "anything" }
             }
     expect(JSEX, :decode!, 1, event)
+    expect(JSEX, :decode, 1, {:ok, event["data"]})
+
+    assert websocket_handle({:text, :event}, :conn_state, state) == { :ok, state }
+    assert_receive %{channel: "public-channel",
+                     event: "message",
+                     data: %{"etc" => "anything"}}
+
+    assert validate JSEX
+  end
+
+  test "handle other events with non encoded data" do
+    state = %State{stream_to: self}
+    channel = "public-channel"
+    event = %{
+               "event" => "message",
+               "channel" => channel,
+               "data" => %{ "etc" => "anything" }
+            }
+    expect(JSEX, :decode!, 1, event)
+    expect(JSEX, :decode, 1, {:error, :badarg})
 
     assert websocket_handle({:text, :event}, :conn_state, state) == { :ok, state }
     assert_receive %{channel: "public-channel",
