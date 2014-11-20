@@ -158,6 +158,15 @@ defmodule PusherClient.WSHandlerTest do
     assert validate PusherEvent
   end
 
+  test "trigger client event" do
+    expect(PusherEvent, :client_event, 3, :client_event_json)
+
+    assert websocket_info({:trigger_event, "client-event", %{}, "private-channel"}, :conn_state, :state) ==
+      {:reply, {:text, :client_event_json}, :state}
+
+    assert validate PusherEvent
+  end
+
   test "terminating with error code 4001" do
     state = %State{}
 

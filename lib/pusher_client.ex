@@ -19,6 +19,10 @@ defmodule PusherClient do
     defstruct stream_to: nil, socket_id: nil, credential: %Credential{}
   end
 
+  defmodule ClientEvent do
+    defstruct [:event, :channel, :data]
+  end
+
   def start_link(url, app_key, secret, options \\ [])
   def start_link(url, app_key, secret, options) when is_list(url) do
     url = build_url(url, app_key)
@@ -43,6 +47,10 @@ defmodule PusherClient do
   def unsubscribe!(pid, channel), do: send(pid, {:unsubscribe, channel})
 
   def disconnect!(pid), do: send(pid, :stop)
+
+  def trigger_event!(pid, "client-" <> _ = event, data, channel) do
+    send(pid, {:trigger_event, event, data, channel})
+  end
 
   @doc false
   def init([app_key, secret, options], _conn_state) do
@@ -72,6 +80,10 @@ defmodule PusherClient do
   end
   def websocket_info({ :unsubscribe, channel }, _conn_state, state) do
     event = PusherEvent.unsubscribe(channel)
+    { :reply, { :text, event }, state }
+  end
+  def websocket_info({ :trigger_event, event, data, channel }, _conn_state, state) do
+    event = PusherEvent.client_event(event, data, channel)
     { :reply, { :text, event }, state }
   end
   def websocket_info(:stop, _conn_state, _state) do

@@ -4,6 +4,13 @@ defmodule PusherClient.PusherEvent do
   alias PusherClient.User
 
   @doc """
+  Returns JSON for a client `event` on `channel` sending `data`
+  """
+  def client_event(event, data, channel) do
+    %{event: event, data: data, channel: channel} |> encode!
+  end
+
+  @doc """
   Return a JSON for a subscription request using the `channel` name as parameter
   """
   @spec subscribe(binary) :: binary
