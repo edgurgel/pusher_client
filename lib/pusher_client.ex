@@ -61,7 +61,7 @@ defmodule PusherClient do
 
   @doc false
   def websocket_handle({ :text, event }, _conn_state, state) do
-    event = JSEX.decode!(event)
+    event = JSX.decode!(event)
     handle_event(event["event"], event, state)
   end
 
@@ -135,7 +135,7 @@ defmodule PusherClient do
   end
 
   defp fetch_data(data) do
-    case JSEX.decode(data) do
+    case JSX.decode(data) do
       {:ok, data} -> data
       _ -> data
     end

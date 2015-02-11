@@ -15,7 +15,7 @@ defmodule PusherClient.WSHandlerTest do
   end
 
   setup do
-    new JSEX
+    new JSX
     new PusherEvent
     on_exit fn -> unload end
     :ok
@@ -49,13 +49,13 @@ defmodule PusherClient.WSHandlerTest do
                "event" => "pusher:connection_established",
                "data" => %{ "socket_id" => socket_id }
             }
-    expect(JSEX, :decode!, 1, event)
-    expect(JSEX, :decode, 1, {:ok, event["data"]})
+    expect(JSX, :decode!, 1, event)
+    expect(JSX, :decode, 1, {:ok, event["data"]})
 
     assert websocket_handle({:text, :event}, :conn_state, state) ==
       { :ok, %State{stream_to: self, socket_id: socket_id} }
 
-    assert validate JSEX
+    assert validate JSX
   end
 
   test "handle subscription succeeded event" do
@@ -66,15 +66,15 @@ defmodule PusherClient.WSHandlerTest do
                "channel" => channel,
                "data" => %{}
              }
-    expect(JSEX, :decode!, 1, event)
-    expect(JSEX, :decode, 1, {:ok, event["data"]})
+    expect(JSX, :decode!, 1, event)
+    expect(JSX, :decode, 1, {:ok, event["data"]})
 
     assert websocket_handle({:text, :event}, :conn_state, state) == { :ok, state }
     assert_receive %{channel: "public-channel",
                      event: "pusher:subscription_succeeded",
                      data: %{}}
 
-    assert validate JSEX
+    assert validate JSX
   end
 
   test "handle other events with encoded data" do
@@ -85,15 +85,15 @@ defmodule PusherClient.WSHandlerTest do
                "channel" => channel,
                "data" => %{ "etc" => "anything" }
             }
-    expect(JSEX, :decode!, 1, event)
-    expect(JSEX, :decode, 1, {:ok, event["data"]})
+    expect(JSX, :decode!, 1, event)
+    expect(JSX, :decode, 1, {:ok, event["data"]})
 
     assert websocket_handle({:text, :event}, :conn_state, state) == { :ok, state }
     assert_receive %{channel: "public-channel",
                      event: "message",
                      data: %{"etc" => "anything"}}
 
-    assert validate JSEX
+    assert validate JSX
   end
 
   test "handle other events with non encoded data" do
@@ -104,15 +104,15 @@ defmodule PusherClient.WSHandlerTest do
                "channel" => channel,
                "data" => %{ "etc" => "anything" }
             }
-    expect(JSEX, :decode!, 1, event)
-    expect(JSEX, :decode, 1, {:error, :badarg})
+    expect(JSX, :decode!, 1, event)
+    expect(JSX, :decode, 1, {:error, :badarg})
 
     assert websocket_handle({:text, :event}, :conn_state, state) == { :ok, state }
     assert_receive %{channel: "public-channel",
                      event: "message",
                      data: %{"etc" => "anything"}}
 
-    assert validate JSEX
+    assert validate JSX
   end
 
   test "subscribe to a public channel" do

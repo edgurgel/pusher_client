@@ -1,4 +1,4 @@
-%{"jsex": {:package, "2.0.0"},
-  "jsx": {:package, "2.0.2"},
-  "meck": {:package, "0.8.2"},
+%{"exjsx": {:hex, :exjsx, "3.1.0"},
+  "jsx": {:hex, :jsx, "2.4.0"},
+  "meck": {:hex, :meck, "0.8.2"},
   "websocket_client": {:git, "git://github.com/jeremyong/websocket_client.git", "2b8d9805306d36f22330f432ae6472f1f2625c30", []}}
