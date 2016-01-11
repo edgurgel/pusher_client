@@ -4,7 +4,7 @@ defmodule PusherClient.Mixfile do
   def project do
     [ app: :pusher_client,
       version: "0.0.1",
-      elixir: "~> 1.0.0",
+      elixir: "~> 1.0",
       deps: deps ]
   end
 
