@@ -66,6 +66,11 @@ defmodule PusherClient do
   end
 
   @doc false
+  def websocket_handle({:ping, raw_message}, _conn_state, state) do
+    {:reply, {:pong, raw_message}, state}
+  end
+
+  @doc false
   def websocket_info({ :subscribe, channel = "private-" <> _ }, _conn_state, state) do
     event = PusherEvent.subscribe(channel, state.socket_id, state.credential)
     { :reply, { :text, event }, state }
