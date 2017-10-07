@@ -29,12 +29,12 @@ defmodule PusherClient do
     :websocket_client.start_link(url, __MODULE__, [app_key, secret, options])
   end
   def start_link(url, app_key, secret, options) when is_binary(url) do
-    start_link(url |> to_char_list, app_key, secret, options)
+    start_link(url |> to_charlist, app_key, secret, options)
   end
 
   defp build_url(url, app_key) do
     query = "?" <> URI.encode_query(%{protocol: @protocol})
-    url ++ '/app/' ++ to_char_list(app_key) ++ to_char_list(query)
+    url ++ '/app/' ++ to_charlist(app_key) ++ to_charlist(query)
   end
 
   def subscribe!(pid, channel) when is_pid(pid) do
@@ -61,7 +61,7 @@ defmodule PusherClient do
 
   @doc false
   def websocket_handle({ :text, event }, _conn_state, state) do
-    event = JSX.decode!(event)
+    event = Poison.decode!(event)
     handle_event(event["event"], event, state)
   end
 
@@ -135,7 +135,7 @@ defmodule PusherClient do
   end
 
   defp fetch_data(data) do
-    case JSX.decode(data) do
+    case Poison.decode(data) do
       {:ok, data} -> data
       _ -> data
     end

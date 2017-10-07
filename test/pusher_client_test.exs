@@ -15,9 +15,9 @@ defmodule PusherClient.WSHandlerTest do
   end
 
   setup do
-    new JSX
+    new Poison
     new PusherEvent
-    on_exit fn -> unload end
+    on_exit fn -> unload() end
     :ok
   end
 
@@ -43,76 +43,76 @@ defmodule PusherClient.WSHandlerTest do
   end
 
   test "handle connection established event" do
-    state = %State{stream_to: self}
+    state = %State{stream_to: self()}
     socket_id = "87381"
     event = %{
                "event" => "pusher:connection_established",
                "data" => %{ "socket_id" => socket_id }
             }
-    expect(JSX, :decode!, 1, event)
-    expect(JSX, :decode, 1, {:ok, event["data"]})
+    expect(Poison, :decode!, 1, event)
+    expect(Poison, :decode, 1, {:ok, event["data"]})
 
     assert websocket_handle({:text, :event}, :conn_state, state) ==
-      { :ok, %State{stream_to: self, socket_id: socket_id} }
+      { :ok, %State{stream_to: self(), socket_id: socket_id} }
 
-    assert validate JSX
+    assert validate Poison
   end
 
   test "handle subscription succeeded event" do
-    state = %State{stream_to: self}
+    state = %State{stream_to: self()}
     channel = "public-channel"
     event = %{
                "event" => "pusher_internal:subscription_succeeded",
                "channel" => channel,
                "data" => %{}
              }
-    expect(JSX, :decode!, 1, event)
-    expect(JSX, :decode, 1, {:ok, event["data"]})
+    expect(Poison, :decode!, 1, event)
+    expect(Poison, :decode, 1, {:ok, event["data"]})
 
     assert websocket_handle({:text, :event}, :conn_state, state) == { :ok, state }
     assert_receive %{channel: "public-channel",
                      event: "pusher:subscription_succeeded",
                      data: %{}}
 
-    assert validate JSX
+    assert validate Poison
   end
 
   test "handle other events with encoded data" do
-    state = %State{stream_to: self}
+    state = %State{stream_to: self()}
     channel = "public-channel"
     event = %{
                "event" => "message",
                "channel" => channel,
                "data" => %{ "etc" => "anything" }
             }
-    expect(JSX, :decode!, 1, event)
-    expect(JSX, :decode, 1, {:ok, event["data"]})
+    expect(Poison, :decode!, 1, event)
+    expect(Poison, :decode, 1, {:ok, event["data"]})
 
     assert websocket_handle({:text, :event}, :conn_state, state) == { :ok, state }
     assert_receive %{channel: "public-channel",
                      event: "message",
                      data: %{"etc" => "anything"}}
 
-    assert validate JSX
+    assert validate Poison
   end
 
   test "handle other events with non encoded data" do
-    state = %State{stream_to: self}
+    state = %State{stream_to: self()}
     channel = "public-channel"
     event = %{
                "event" => "message",
                "channel" => channel,
                "data" => %{ "etc" => "anything" }
             }
-    expect(JSX, :decode!, 1, event)
-    expect(JSX, :decode, 1, {:error, :badarg})
+    expect(Poison, :decode!, 1, event)
+    expect(Poison, :decode, 1, {:error, :badarg})
 
     assert websocket_handle({:text, :event}, :conn_state, state) == { :ok, state }
     assert_receive %{channel: "public-channel",
                      event: "message",
                      data: %{"etc" => "anything"}}
 
-    assert validate JSX
+    assert validate Poison
   end
 
   test "subscribe to a public channel" do

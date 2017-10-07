@@ -3,18 +3,18 @@ defmodule PusherClient.Mixfile do
 
   def project do
     [ app: :pusher_client,
-      version: "0.0.1",
-      elixir: "~> 1.0",
-      deps: deps ]
+      version: "1.0.0",
+      elixir: "~> 1.5",
+      deps: deps() ]
   end
 
   def application do
-    [ applications: [ :logger ] ]
+    [ applications: [ :logger, :websocket_client, :poison ] ]
   end
 
   defp deps do
-    [ { :websocket_client, github: "jeremyong/websocket_client" },
-      { :exjsx, "~> 3.0" },
-      { :meck, "~> 0.8.2", only: :test } ]
+    [ { :websocket_client, "~> 1.3" },
+      { :poison, "~> 3.0" },
+      { :meck, "~> 0.8", only: :test } ]
   end
 end

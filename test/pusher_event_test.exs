@@ -6,19 +6,19 @@ defmodule PusherClient.EventTest do
   import :meck
 
   setup do
-    new JSX
-    on_exit fn -> unload end
+    new Poison
+    on_exit fn -> unload() end
     :ok
   end
 
   test "subscribe to public channel" do
     event = %{ event: "pusher:subscribe",
                data: %{ channel: "channel" } }
-    expect(JSX, :encode!, [{[event], :ok}])
+    expect(Poison, :encode!, [{[event], :ok}])
 
     assert subscribe("channel") == :ok
 
-    assert validate(JSX)
+    assert validate(Poison)
   end
 
   # Using https://pusher.com/docs/auth_signatures as example
@@ -30,11 +30,11 @@ defmodule PusherClient.EventTest do
     event = %{event: "pusher:subscribe",
               data: %{channel: "private-foobar",
                       auth: auth}}
-    expect(JSX, :encode!, [{[event], :ok}])
+    expect(Poison, :encode!, [{[event], :ok}])
 
     assert subscribe("private-foobar", "1234.1234", credential) == :ok
 
-    assert validate(JSX)
+    assert validate(Poison)
   end
 
   # Using https://pusher.com/docs/auth_signatures as example
@@ -49,22 +49,22 @@ defmodule PusherClient.EventTest do
               data: %{channel: "presence-foobar",
                       auth: auth,
                       channel_data: channel_data}}
-    expect(JSX, :encode!,
+    expect(Poison, :encode!,
       [{[event], :ok},
        {[%{user_id: 10, user_info: %{name: "Mr. Pusher"}}], channel_data}])
 
     assert subscribe("presence-foobar", "1234.1234", credential, user) == :ok
 
-    assert validate(JSX)
+    assert validate(Poison)
   end
 
   test "unsubscribe to a channel" do
     event = %{ event: "pusher:unsubscribe",
                data: %{ channel: "channel" } }
-    expect(JSX, :encode!, [{[event], :ok}])
+    expect(Poison, :encode!, [{[event], :ok}])
 
     assert unsubscribe("channel") == :ok
 
-    assert validate(JSX)
+    assert validate(Poison)
   end
 end

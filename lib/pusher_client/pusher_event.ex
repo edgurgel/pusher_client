@@ -1,5 +1,5 @@
 defmodule PusherClient.PusherEvent do
-  import JSX
+  import Poison
   alias PusherClient.Credential
   alias PusherClient.User
 
